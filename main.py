@@ -3,6 +3,7 @@ import numpy as np
 from scipy.signal import savgol_filter
 from scipy.integrate import trapz
 import os
+import ntpath
 
 
 def peak_stripping(spectrum, window):
@@ -47,8 +48,7 @@ def baseline(spectrum):
     return base, corrected_spectrum
 
 
-def plot(filename):
-    current_folder = r"C:\Users\Tom\Downloads\Compressed\222\21\Exp_MatLab\Exp1\PDMS-CW"
+def plot(current_folder, filename, save_file=True):
     os.makedirs(current_folder, exist_ok=True)
     modes = os.path.splitext(filename)[0].split("_")
     pre, ex = modes[2].split("10")
@@ -71,30 +71,49 @@ def plot(filename):
 
     base, corrected = baseline(y)
 
-    plt.figure()
     plt.plot(x, corrected, label=f"{modes[1]}, scale={scale}")
-    plt.plot(x, base, label="baseline")
-    plt.plot(x, y, label="original")
+    # plt.plot(x, base, label="baseline")
+    # plt.plot(x, y, label="original")
 
     plt.xlabel("Raman Shift ($cm^{-1}$)")
     plt.ylabel("Intensity (arbitrary)")
     plt.title(f"{modes[0]}:{modes[1]} with {modes[3]}=${pre}\\times10^{ex}M$")
 
     plt.legend()
-    plt.show(block=False)
+
+    os.makedirs(os.path.join("output", modes[1]), exist_ok=True)
+    if save_file:
+        plt.savefig(os.path.join("output", modes[1], os.path.splitext(filename)[0] + ".png"))
     return
 
 
-def multi_plot(filenames_path):
-    with open(filenames_path, "r") as f:
-        list_of_filenames = f.read().split("\n")
-        for i in list_of_filenames:
-            plot(i.strip() + ".txt")
+def multi_plot(folder_path, save_file=True):
+    for i in os.listdir(folder_path):
+        plt.figure()
+        plot(folder_path, i, save_file=save_file)
+        plt.show(block=False)
     return
+
+
+def compare(folder_path, list_of_files, save_file=True):
+    length = len(list_of_files)
+    fnames = []
+    for i, f in enumerate(list_of_files, 1):
+        plt.subplot(length, 1, i)
+        head, tail = ntpath.split(f)
+        plt.tight_layout()
+        os.makedirs(os.path.join("output", "comparison"), exist_ok=True)
+        fnames.append(os.path.splitext(tail or ntpath.basename(head))[0])
+        plot(os.path.join(folder_path, head), tail or ntpath.basename(head), save_file=False)
+
+    if save_file:
+        plt.savefig(os.path.join("output", "comparison", f"com_{'_n_'.join(fnames)}.png"))
+    pass
 
 
 def main():
-    multi_plot(r"C:\Users\Tom\Downloads\Compressed\222\21\Exp_MatLab\Exp1\PDMS-CW_files.txt")
+    # multi_plot(r"C:\Users\Tom\Downloads\Compressed\222\21\Exp_MatLab\Exp1\PDMS-CW")
+    compare(r"C:\Users\Tom\Downloads\Compressed\222\21\Exp_MatLab\Exp1", ["PDMS-CW/Ag25nm_PDMS-CW_106_R6G_633nm_1.txt", "PDMS-CW/Ag25nm_PDMS-CW_106_R6G_633nm_2.txt", "KL-BWS/Ag25nm_KL-BWS_104_R6G_633nm_2.txt"])
     plt.show()
 
 
